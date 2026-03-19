@@ -21,6 +21,7 @@ data/labeled/*
 !data/raw/.gitkeep
 !data/labeled/.gitkeep
 !data/labeled/labels.example.jsonl
+!data/labeled/labels.jsonl
 models/checkpoints/*
 !models/checkpoints/.gitkeep
 *.log

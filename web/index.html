@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医疗病灶识别系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .upload-section {
+            padding: 40px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 12px;
+            padding: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f5f5ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .upload-text span {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .preview-container.show {
+            display: block;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .analyze-btn {
+            margin-top: 20px;
+            padding: 14px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .result-section {
+            padding: 40px;
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .result-header h2 {
+            color: #333;
+            font-size: 1.4rem;
+        }
+
+        .confidence-badge {
+            margin-left: auto;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .confidence-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .confidence-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .summary-box {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 25px;
+        }
+
+        .summary-box p {
+            color: #333;
+            font-size: 1.15rem;
+            line-height: 1.6;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .detail-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .detail-item:hover {
+            background: #f0f1f3;
+        }
+
+        .detail-label {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            color: #333;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 10px 20px;
+            font-size: 0.85rem;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .status-dot.online {
+            background: #28a745;
+        }
+
+        .status-dot.offline {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 医疗病灶识别系统</h1>
+            <p>上传皮肤病灶图像，AI 自动识别并生成医学规范描述</p>
+        </div>
+
+        <div class="main-card">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📷</div>
+                    <p class="upload-text">拖拽图片到此处，或 <span>点击上传</span></p>
+                    <p style="color: #999; font-size: 0.9rem; margin-top: 8px;">支持 JPG、PNG 格式</p>
+                </div>
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg">
+
+                <div class="preview-container" id="previewContainer">
+                    <img id="previewImage" class="preview-image" alt="预览图片">
+                    <p class="file-name" id="fileName"></p>
+                </div>
+
+                <button class="analyze-btn" id="analyzeBtn" disabled>开始分析</button>
+
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在分析图像，请稍候...</p>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <div class="result-header">
+                    <h2>📋 分析结果</h2>
+                    <span class="confidence-badge" id="confidenceBadge"></span>
+                </div>
+
+                <div class="summary-box">
+                    <p id="summaryText"></p>
+                </div>
+
+                <div class="details-grid" id="detailsGrid">
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <span>
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">检查服务状态...</span>
+                </span>
+                <span id="modelVersion"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const fileName = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const resultSection = document.getElementById('resultSection');
+        const errorMessage = document.getElementById('errorMessage');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const modelVersion = document.getElementById('modelVersion');
+
+        let selectedFile = null;
+
+        // 检查服务状态
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                statusDot.classList.add('online');
+                statusDot.classList.remove('offline');
+                statusText.textContent = data.model_loaded ? '服务正常，模型已加载' : '服务正常，模型未加载';
+                modelVersion.textContent = data.model_loaded ? '模型版本: v1' : '';
+            } catch (e) {
+                statusDot.classList.add('offline');
+                statusDot.classList.remove('online');
+                statusText.textContent = '服务未连接';
+                modelVersion.textContent = '';
+            }
+        }
+
+        // 页面加载时检查状态
+        checkHealth();
+        setInterval(checkHealth, 30000);
+
+        // 点击上传区域
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // 拖拽功能
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // 文件选择
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // 处理文件
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('请选择图片文件');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewContainer.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+
+            analyzeBtn.disabled = false;
+            resultSection.classList.remove('show');
+            hideError();
+        }
+
+        // 分析按钮点击
+        analyzeBtn.addEventListener('click', analyzeImage);
+
+        async function analyzeImage() {
+            if (!selectedFile) return;
+
+            analyzeBtn.disabled = true;
+            loading.classList.add('show');
+            resultSection.classList.remove('show');
+            hideError();
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            try {
+                const response = await fetch(`${API_BASE}/analyze`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResult(data);
+            } catch (e) {
+                showError(`分析失败: ${e.message}，请确保 API 服务已启动`);
+            } finally {
+                loading.classList.remove('show');
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        // 显示结果
+        function displayResult(data) {
+            const desc = data.lesion_description;
+            
+            // 置信度标签
+            const confidence = desc.confidence || 0;
+            const confidenceBadge = document.getElementById('confidenceBadge');
+            confidenceBadge.textContent = `置信度: ${(confidence * 100).toFixed(1)}%`;
+            confidenceBadge.className = 'confidence-badge';
+            if (confidence >= 0.7) {
+                confidenceBadge.classList.add('confidence-high');
+            } else if (confidence >= 0.5) {
+                confidenceBadge.classList.add('confidence-medium');
+            } else {
+                confidenceBadge.classList.add('confidence-low');
+            }
+
+            // 摘要
+            document.getElementById('summaryText').textContent = desc.summary || '无摘要';
+
+            // 详情网格
+            const detailsGrid = document.getElementById('detailsGrid');
+            const fields = [
+                { key: 'color', label: '颜色', icon: '🎨' },
+                { key: 'size', label: '大小', icon: '📏' },
+                { key: 'position', label: '位置', icon: '📍' },
+                { key: 'shape', label: '形状', icon: '⭕' },
+                { key: 'scale', label: '鳞屑', icon: '🔍' },
+                { key: 'texture', label: '质地', icon: '✋' },
+                { key: 'border', label: '边界', icon: '🔲' }
+            ];
+
+            detailsGrid.innerHTML = fields.map(f => `
+                <div class="detail-item">
+                    <div class="detail-label">${f.icon} ${f.label}</div>
+                    <div class="detail-value">${desc[f.key] || '-'}</div>
+                </div>
+            `).join('');
+
+            resultSection.classList.add('show');
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.add('show');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+    </script>
+</body>
+</html>

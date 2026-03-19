@@ -100,6 +100,7 @@ def main():
     parser.add_argument("--val-ratio", type=float, default=0.2, help="验证集比例")
     parser.add_argument("--seed", type=int, default=42, help="随机种子")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="设备")
+    parser.add_argument("--no-pretrained", action="store_true", help="不使用预训练权重（网络问题时使用）")
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -134,7 +135,8 @@ def main():
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=0, collate_fn=collate_fn)
 
     device = torch.device(args.device)
-    model = MultiTaskLesionModel(num_classes=num_classes, pretrained=True).to(device)
+    use_pretrained = not args.no_pretrained
+    model = MultiTaskLesionModel(num_classes=num_classes, pretrained=use_pretrained).to(device)
     optim = torch.optim.AdamW(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optim, T_max=args.epochs)
 

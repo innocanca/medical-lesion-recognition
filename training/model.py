@@ -3,6 +3,7 @@
 ResNet  backbone + 各维度独立分类头
 """
 
+import os
 from typing import Dict, List
 
 import torch
@@ -22,10 +23,14 @@ class MultiTaskLesionModel(nn.Module):
         if pretrained:
             try:
                 self.backbone = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-            except AttributeError:
-                self.backbone = models.resnet18(pretrained=True)
+                print("已加载 ImageNet 预训练权重")
+            except (AttributeError, Exception) as e:
+                print(f"警告: 无法加载预训练权重 ({e})")
+                print("使用随机初始化权重继续训练...")
+                self.backbone = models.resnet18(weights=None)
         else:
             self.backbone = models.resnet18(weights=None)
+            print("使用随机初始化权重")
         self.backbone.fc = nn.Identity()
         feat_dim = 512
 
