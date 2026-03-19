@@ -20,10 +20,12 @@ cd medical-lesion-recognition
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+pip install -r requirements-train.txt  # 训练依赖
 ```
 
-### 2. 启动 API 服务
+### 2. 启动服务
 
+**启动 API 服务**
 ```bash
 # 方式一：直接运行
 python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
@@ -32,20 +34,37 @@ python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
 docker-compose up -d
 ```
 
-### 3. 调用接口
+**启动前端页面**
+```bash
+cd web && python -m http.server 8080
+```
+
+### 3. 访问地址
+
+| 服务 | 地址 |
+|------|------|
+| 前端页面 | http://localhost:8080 |
+| API 服务 | http://localhost:8000 |
+| API 文档 (Swagger) | http://localhost:8000/docs |
+
+### 4. 调用接口
 
 **健康检查**
 ```bash
 curl http://localhost:8000/health
 ```
 
-**图像分析**
+**图像分析（文件上传）**
 ```bash
 curl -X POST -F "image=@your_lesion_image.jpg" http://localhost:8000/analyze
 ```
 
-**API 文档**  
-启动后访问: http://localhost:8000/docs
+**图像分析（Base64）**
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"image": "base64_encoded_string"}' \
+  http://localhost:8000/analyze/base64
+```
 
 ## 项目结构
 
@@ -65,7 +84,10 @@ medical-lesion-recognition/
 │   └── predictor.py     # 推理逻辑
 ├── training/            # 训练脚本
 │   └── train.py
-├── scripts/             # 脚本
+├── scripts/             # 工具脚本
+│   └── auto_label.py    # 自动标注脚本
+├── web/                 # 前端页面
+│   └── index.html       # 病灶识别 Web 界面
 ├── Dockerfile
 ├── docker-compose.yml
 └── requirements.txt
@@ -99,18 +121,30 @@ pip install -r requirements-train.txt
 {"image_path": "images/xxx.jpg", "color": "红斑", "size": "米粒大小 (3-5mm)", "position": "躯干", "shape": "斑片状", "scale": "轻度鳞屑", "texture": "粗糙", "border": "边界清楚"}
 ```
 
+**自动标注（可选）**：如果有大量图片需要初步标注，可使用自动标注脚本：
+```bash
+python scripts/auto_label.py
+```
+
 ### 3. 执行训练
 
 ```bash
+# 标准训练（使用 ImageNet 预训练权重）
 python training/train.py --data-dir data/labeled --epochs 20 --batch-size 16
+
+# 如遇网络问题无法下载预训练权重，使用此命令
+python training/train.py --data-dir data/labeled --epochs 20 --batch-size 16 --no-pretrained
 ```
 
 常用参数：
-- `--epochs`：训练轮数（默认 20）
-- `--batch-size`：批次大小（默认 16）
-- `--lr`：学习率（默认 1e-4）
-- `--val-ratio`：验证集比例（默认 0.2）
-- `--device`：cuda 或 cpu
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--epochs` | 训练轮数 | 20 |
+| `--batch-size` | 批次大小 | 16 |
+| `--lr` | 学习率 | 1e-4 |
+| `--val-ratio` | 验证集比例 | 0.2 |
+| `--device` | 设备 (cuda/cpu) | auto |
+| `--no-pretrained` | 不使用预训练权重 | false |
 
 ### 4. 使用训练好的模型
 
