@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ML/Data
+*.pt
+*.pth
+*.onnx
+data/raw/*
+data/labeled/*
+!data/raw/.gitkeep
+!data/labeled/.gitkeep
+!data/labeled/labels.example.jsonl
+models/checkpoints/*
+!models/checkpoints/.gitkeep
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

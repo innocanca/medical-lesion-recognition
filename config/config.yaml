@@ -1,0 +1,75 @@
+# 医疗病灶识别系统配置
+
+model:
+  # 模型路径，训练后更新此路径
+  checkpoint_path: "models/checkpoints/best_model.pt"
+  device: "cuda"  # cuda / cpu
+  # 输入图像尺寸
+  image_size: 224
+
+# 医学规范术语维度定义
+# 可根据实际标注数据扩展
+terminology:
+  # 颜色 (Color)
+  colors:
+    - 正常肤色
+    - 红斑
+    - 色素沉着
+    - 色素减退
+    - 紫红色
+    - 黄褐色
+    - 灰黑色
+    - 其他
+
+  # 大小 (Size) - 单位mm
+  size_categories:
+    - 针尖大小 (<1mm)
+    - 粟粒大小 (1-2mm)
+    - 米粒大小 (3-5mm)
+    - 黄豆大小 (5-10mm)
+    - 蚕豆大小 (10-20mm)
+    - 核桃大小 (>20mm)
+    - 弥漫性
+
+  # 位置 (Position)
+  positions:
+    - 面部
+    - 头皮
+    - 躯干
+    - 四肢
+    - 手足
+    - 关节处
+    - 黏膜
+    - 其他
+
+  # 形状 (Shape)
+  shapes:
+    - 圆形
+    - 椭圆形
+    - 不规则形
+    - 斑片状
+    - 条索状
+    - 网状
+    - 靶形
+    - 其他
+
+  # 鳞屑 (Scale)
+  scale_presence:
+    - 无鳞屑
+    - 轻度鳞屑
+    - 中度鳞屑
+    - 重度鳞屑
+
+  # 其他维度
+  textures:
+    - 光滑
+    - 粗糙
+    - 角化
+    - 苔藓化
+    - 其他
+
+  borders:
+    - 边界清楚
+    - 边界模糊
+    - 浸润性边缘
+    - 其他

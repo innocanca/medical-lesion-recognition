@@ -1,0 +1,3 @@
+{"image_path": "images/lesion_001.jpg", "color": "红斑", "size": "米粒大小 (3-5mm)", "position": "躯干", "shape": "斑片状", "scale": "轻度鳞屑", "texture": "粗糙", "border": "边界清楚"}
+{"image_path": "images/lesion_002.jpg", "color": "色素沉着", "size": "黄豆大小 (5-10mm)", "position": "面部", "shape": "圆形", "scale": "无鳞屑", "texture": "光滑", "border": "边界清楚"}
+{"image_path": "images/lesion_003.jpg", "color": "黄褐色", "size": "蚕豆大小 (10-20mm)", "position": "四肢", "shape": "椭圆形", "scale": "中度鳞屑", "texture": "角化", "border": "边界模糊"}
