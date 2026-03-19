@@ -15,9 +15,11 @@ from .schema import LesionDescription
 class LesionPredictor:
     """病灶识别预测器"""
 
-    def __init__(self, config_path: str = "config/config.yaml"):
+    def __init__(self, config_path: str = "config/config.yaml", root_dir: Optional[Path] = None):
+        self.root = root_dir or Path(config_path).resolve().parent.parent
         self.config = self._load_config(config_path)
         self.model = None
+        self.terminology = None
         self.model_loaded = False
         self._load_model()
 
@@ -32,39 +34,96 @@ class LesionPredictor:
     def _load_model(self) -> None:
         """加载模型，若不存在则保持 None"""
         cfg = self.config.get("model", {})
-        checkpoint = cfg.get("checkpoint_path", "")
-        if not checkpoint or not Path(checkpoint).exists():
+        checkpoint_path = cfg.get("checkpoint_path", "")
+        if not checkpoint_path:
+            return
+        path = Path(checkpoint_path)
+        if not path.is_absolute():
+            path = self.root / path
+        if not path.exists():
             return
         try:
             import torch
-            # 预留：加载实际模型
-            # self.model = load_your_model(checkpoint)
+
+            try:
+                ckpt = torch.load(path, map_location="cpu", weights_only=True)
+            except TypeError:
+                ckpt = torch.load(path, map_location="cpu")
+            num_classes = ckpt.get("num_classes")
+            terminology = ckpt.get("terminology")
+            if not num_classes or not terminology:
+                return
+
+            from training.model import MultiTaskLesionModel
+            self.model = MultiTaskLesionModel(num_classes=num_classes, pretrained=False)
+            self.model.load_state_dict(ckpt["model_state_dict"], strict=True)
+            device = cfg.get("device", "cpu")
+            if device == "cuda" and not torch.cuda.is_available():
+                device = "cpu"
+            self.model = self.model.to(device)
+            self.model.eval()
+            self.terminology = terminology
             self.model_loaded = True
-        except Exception:
+        except Exception as e:
+            # 静默失败，保持占位模式
             pass
 
-    def _preprocess(self, image: Image.Image) -> Image.Image:
-        """图像预处理"""
+    def _preprocess(self, image: Image.Image):
+        """图像预处理，返回 tensor"""
+        import torch
+        from torchvision import transforms as T
+
         size = self.config.get("model", {}).get("image_size", 224)
-        return image.convert("RGB").resize((size, size))
+        img = image.convert("RGB").resize((size, size))
+        transform = T.Compose([
+            T.ToTensor(),
+            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ])
+        return transform(img).unsqueeze(0)
 
     def predict(self, image: Image.Image) -> LesionDescription:
-        """
-        对单张图像进行病灶识别
-        """
-        _ = self._preprocess(image)  # 预处理
-
+        """对单张图像进行病灶识别"""
         if self.model_loaded and self.model is not None:
-            # 实际模型推理
             return self._model_predict(image)
-        else:
-            # 无模型时返回占位结果，便于 API 联调
-            return self._placeholder_predict()
+        return self._placeholder_predict()
 
     def _model_predict(self, image: Image.Image) -> LesionDescription:
-        """模型推理（待接入实际模型）"""
-        # TODO: 调用 self.model 进行推理
-        return self._placeholder_predict()
+        """模型推理"""
+        import torch
+
+        cfg = self.config.get("model", {})
+        device = next(self.model.parameters()).device
+        x = self._preprocess(image).to(device)
+
+        with torch.no_grad():
+            logits = self.model(x)
+
+        preds = {}
+        for task, logit in logits.items():
+            probs = logit.softmax(1)[0]
+            idx = logit.argmax(1).item()
+            opts = self.terminology.get(task, [])
+            preds[task] = (opts[idx] if 0 <= idx < len(opts) else opts[0], probs[idx].item())
+
+        # 构建综合描述
+        parts = []
+        for k in ["color", "size", "position", "shape", "scale"]:
+            if k in preds:
+                parts.append(preds[k][0])
+        summary = "，".join(parts) if parts else "见各维度描述"
+        confidence = sum(p[1] for p in preds.values()) / max(1, len(preds))
+
+        return LesionDescription(
+            color=preds.get("color", (None, 0))[0],
+            size=preds.get("size", (None, 0))[0],
+            position=preds.get("position", (None, 0))[0],
+            shape=preds.get("shape", (None, 0))[0],
+            scale=preds.get("scale", (None, 0))[0],
+            texture=preds.get("texture", (None, 0))[0],
+            border=preds.get("border", (None, 0))[0],
+            confidence=round(confidence, 4),
+            summary=summary,
+        )
 
     def _placeholder_predict(self) -> LesionDescription:
         """占位预测，用于无模型时的联调"""
@@ -85,6 +144,6 @@ class LesionPredictor:
             scale=scales[1] if len(scales) > 1 else scales[0],
             texture=textures[1] if len(textures) > 1 else textures[0],
             border=borders[0],
-            confidence=0.0,  # 占位时置信度为 0
+            confidence=0.0,
             summary="【占位结果】请使用标注数据训练模型后，将 checkpoint 放到 models/checkpoints/ 以启用真实推理。"
         )

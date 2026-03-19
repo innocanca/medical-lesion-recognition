@@ -2,6 +2,8 @@
 
 基于图像的病灶医学规范术语识别，辅助医生进行诊断。系统对患处进行多维度描述，包括**颜色、大小、位置、形状、鳞屑**等，输出符合医学规范的标准化术语。
 
+> 📖 **详细文档**：参见 [docs/使用指南.md](docs/使用指南.md) —— 包含完整的训练步骤与 API 调用说明。
+
 ## 功能特性
 
 - **多维度描述**：颜色、大小、位置、形状、鳞屑、质地、边界等
@@ -81,13 +83,38 @@ medical-lesion-recognition/
 
 ## 训练模型
 
-准备完标注数据后执行：
+### 1. 安装训练依赖
 
 ```bash
-python training/train.py --data-dir data/labeled --epochs 10
+pip install -r requirements.txt
+pip install -r requirements-train.txt
 ```
 
-训练完成后将最佳模型保存至 `models/checkpoints/`，API 将自动加载。
+### 2. 准备标注数据
+
+- 将图像放入 `data/labeled/images/`
+- 创建 `data/labeled/labels.jsonl`，每行一条 JSON（参考 `data/labeled/labels.example.jsonl`）：
+
+```json
+{"image_path": "images/xxx.jpg", "color": "红斑", "size": "米粒大小 (3-5mm)", "position": "躯干", "shape": "斑片状", "scale": "轻度鳞屑", "texture": "粗糙", "border": "边界清楚"}
+```
+
+### 3. 执行训练
+
+```bash
+python training/train.py --data-dir data/labeled --epochs 20 --batch-size 16
+```
+
+常用参数：
+- `--epochs`：训练轮数（默认 20）
+- `--batch-size`：批次大小（默认 16）
+- `--lr`：学习率（默认 1e-4）
+- `--val-ratio`：验证集比例（默认 0.2）
+- `--device`：cuda 或 cpu
+
+### 4. 使用训练好的模型
+
+训练完成后，最佳模型会保存至 `models/checkpoints/best_model.pt`。重启 API 服务后会自动加载该模型。
 
 ## 医学术语配置
 
